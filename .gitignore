@@ -1,0 +1,14 @@
+.classpath
+.project
+.settings
+.checkstyle
+*LocalTest.java
+bin
+.DS_Store
+/target/
+*.iml
+/.idea
+MANIFEST.MF
+log.txt
+/src/main/resources/log4j.xml
+/src/main/resources/logback.xml
