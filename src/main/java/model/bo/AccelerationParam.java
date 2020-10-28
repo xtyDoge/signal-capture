@@ -18,7 +18,7 @@ import model.exception.SerialCustomException;
  * Created on 2020-10-19
  */
 @Data
-public class AccelerationParam {
+public class AccelerationParam extends BaseSerialParam {
 
     private long timeStamp;
 
@@ -62,21 +62,22 @@ public class AccelerationParam {
 //        温度计算公式:
 //        T=((TH<<8)|TL) /340+36.53 °C
 //        校验和: Sum=0x55+0x51+AxH+AxL+AyH+AyL+AzH+AzL+TH+TL
-        this.accelerationX = ((int) contents[1] << 8 | (int) contents[0]) / 32768.0 * 16 * GRAVITY;
-        this.accelerationY = ((int) contents[3] << 8 | (int) contents[2]) / 32768.0 * 16 * GRAVITY;
-        this.accelerationZ = ((int) contents[5] << 8 | (int) contents[4]) / 32768.0 * 16 * GRAVITY;
-        this.temperature = ((int) contents[7] << 8 | (int) contents[6]) / 340.0 + 36.53;
+        System.out.println(DatatypeConverter.printHexBinary(contents));
+        this.accelerationX = (short) ((contents[1] & 0xff) << 8 | (contents[0] & 0xff)) / 32768.0 * 16;
+        this.accelerationY = (short) ((contents[3] & 0xff) << 8 | (contents[2] & 0xff)) / 32768.0 * 16;
+        this.accelerationZ = (short) ((contents[5] & 0xff) << 8 | (contents[4] & 0xff)) / 32768.0 * 16;
+        this.temperature = (short) ((contents[7] & 0xff) << 8 | (contents[6] & 0xff)) / 100.0;
 
         this.isValid = canPassCheckSum(contents, contents[8]);
     }
 
     // content不含0x55和0x51，需要之后补上
     private boolean canPassCheckSum(byte[] content, byte checkSum) {
-        byte calculatedCheckSum = (byte) (FRAME_HEAD + ACCELERATION_HEAD);
+        byte calculatedCheckSum = (byte) (0xff & FRAME_HEAD + 0xff & ACCELERATION_HEAD);
         for (int i=0; i<content.length; i++) {
-            calculatedCheckSum += content[i];
+            calculatedCheckSum += (content[i] & 0xff);
         }
-        return calculatedCheckSum == checkSum;
+        return (calculatedCheckSum & 0xff) == (checkSum & 0xff);
     }
 
 }

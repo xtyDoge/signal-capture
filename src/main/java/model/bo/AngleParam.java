@@ -17,7 +17,7 @@ import model.exception.SerialCustomException;
  * Created on 2020-10-20
  */
 @Data
-public class AngleParam {
+public class AngleParam extends BaseSerialParam{
 
     // 滚转角（x 轴）
     private double roll;
@@ -62,10 +62,10 @@ public class AngleParam {
 //        T=((TH<<8)|TL) /340+36.53 °C
 //        校验和: Sum=0x55+0x53+RollH+RollL+PitchH+PitchL+YawH+YawL+TH+TL
         // 还好是战雷玩家，看得懂
-        this.roll = ((int) contents[1] << 8 | (int) contents[0]) / 32768.0 * 180;
-        this.pitch = ((int) contents[3] << 8 | (int) contents[2]) / 32768.0 * 180;
-        this.yaw = ((int) contents[5] << 8 | (int) contents[4]) / 32768.0 * 180;
-        this.temperature = ((int) contents[7] << 8 | (int) contents[6]) / 340.0 + 36.53;
+        this.roll = (short) ((0xff & contents[1]) << 8 |  (0xff & contents[0])) / 32768.0 * 180;
+        this.pitch = (short) ((0xff & contents[3]) << 8 | (0xff & contents[2])) / 32768.0 * 180;
+        this.yaw = (short) ((0xff & contents[5]) << 8 | (0xff & contents[4])) / 32768.0 * 180;
+        this.temperature = (short) ((0xff & contents[7]) << 8 | (0xff & contents[6])) / 100.0;
 
         this.isValid = canPassCheckSum(contents, contents[8]);
     }

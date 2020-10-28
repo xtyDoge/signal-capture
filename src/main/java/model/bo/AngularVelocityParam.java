@@ -9,6 +9,8 @@ import java.util.Arrays;
 
 import javax.xml.bind.DatatypeConverter;
 
+import com.alibaba.fastjson.JSON;
+
 import lombok.Data;
 import model.exception.SerialCustomException;
 
@@ -17,7 +19,7 @@ import model.exception.SerialCustomException;
  * Created on 2020-10-19
  */
 @Data
-public class AngularVelocityParam {
+public class AngularVelocityParam extends BaseSerialParam {
 
     private long timeStamp;
 
@@ -40,7 +42,7 @@ public class AngularVelocityParam {
         // 11字节，说明包括头部的0x55
         byte[] contents = new byte[FRAME_WITHOUT_HEAD_LENGTH - 1];
         if (raw.length == FRAME_LENGTH) {
-            if (raw[0] != FRAME_HEAD) {
+            if (raw[0] != FRAME_HEAD || raw[1] != ANGULAR_VELOCITY_HEAD) {
                 throw new SerialCustomException(String.format("检测到非法帧%s，头应是0x55",
                         DatatypeConverter.printHexBinary(raw)));
             }
@@ -60,10 +62,10 @@ public class AngularVelocityParam {
         // wz=((wzH<<8)|wzL)/32768*2000(°/s) 温度计算公式:
         // T=((TH<<8)|TL) /340+36.53 °C
         // 校验和: Sum=0x55+0x52+wxH+wxL+wyH+wyL+wzH+wzL+TH+TL
-        this.angularVelocityX = ((int) contents[1] << 8 | (int) contents[0]) / 32768.0 * 2000;
-        this.angularVelocityY = ((int) contents[3] << 8 | (int) contents[2]) / 32768.0 * 2000;
-        this.angularVelocityZ = ((int) contents[5] << 8 | (int) contents[4]) / 32768.0 * 2000;
-        this.temperature = ((int) contents[7] << 8 | (int) contents[6]) / 340.0 + 36.53;
+        this.angularVelocityX = (short) ((contents[1] & 0xff) << 8 | (contents[0] & 0xff)) / 32768.0 * 2000;
+        this.angularVelocityY = (short) ((contents[3] & 0xff) << 8 | (contents[2] & 0xff)) / 32768.0 * 2000;
+        this.angularVelocityZ = (short) ((contents[5] & 0xff) << 8 | (contents[4] & 0xff)) / 32768.0 * 2000;
+        this.temperature = (short) ((contents[7] & 0xff) << 8 | (contents[6] & 0xff)) / 340.0 + 36.53;
         // 51000000000000000000
         // 52000000000000A00148
         // 5317026F03C524242969
@@ -77,5 +79,11 @@ public class AngularVelocityParam {
             calculatedCheckSum += content[i];
         }
         return calculatedCheckSum == checkSum;
+    }
+
+    public static void main(String[] args) throws SerialCustomException {
+        byte[] dataBag = {0x51, (byte) 0x66, (byte) 0xFF,0x78,0x00,0x2e,0x08, (byte) 0x62,0x0b, (byte) 0x26};
+        AccelerationParam angleParam = new AccelerationParam(dataBag, System.currentTimeMillis());
+        System.out.println(JSON.toJSON(angleParam));
     }
 }
