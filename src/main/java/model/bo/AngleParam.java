@@ -1,16 +1,16 @@
 package model.bo;
 
-import static model.constant.Constants.ANGLE_HEAD;
-import static model.constant.Constants.FRAME_HEAD;
-import static model.constant.Constants.FRAME_LENGTH;
-import static model.constant.Constants.FRAME_WITHOUT_HEAD_LENGTH;
+import static common.constant.Constants.ANGLE_HEAD;
+import static common.constant.Constants.FRAME_HEAD;
+import static common.constant.Constants.FRAME_LENGTH;
+import static common.constant.Constants.FRAME_WITHOUT_HEAD_LENGTH;
 
 import java.util.Arrays;
 
 import javax.xml.bind.DatatypeConverter;
 
 import lombok.Data;
-import model.exception.SerialCustomException;
+import common.exception.SerialCustomException;
 
 /**
  * @author xutianyou <xutianyou@kuaishou.com>
@@ -28,7 +28,7 @@ public class AngleParam extends BaseSerialParam{
     // 温度
     private double temperature;
     // 时间
-    private long timeStamp;
+    private long timestamp;
     // 校验和是否符合
     private boolean isValid = true;
 
@@ -36,7 +36,7 @@ public class AngleParam extends BaseSerialParam{
     public AngleParam(byte[] raw, long nowInMills) throws SerialCustomException {
 
         // 当前时间
-        this.timeStamp = nowInMills;
+        this.timestamp = nowInMills;
 
         // 11字节，说明包括头部的0x55
         byte[] contents = new byte[FRAME_WITHOUT_HEAD_LENGTH - 1];

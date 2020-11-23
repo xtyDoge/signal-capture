@@ -3,7 +3,6 @@ package utils;
 import static javax.swing.JFrame.EXIT_ON_CLOSE;
 
 import org.bytedeco.javacv.CanvasFrame;
-import org.bytedeco.javacv.FFmpegFrameGrabber;
 import org.bytedeco.javacv.FFmpegLogCallback;
 import org.bytedeco.javacv.Frame;
 import org.bytedeco.javacv.FrameGrabber;
@@ -11,7 +10,7 @@ import org.bytedeco.javacv.FrameGrabber.Exception;
 import org.bytedeco.javacv.OpenCVFrameGrabber;
 
 import lombok.extern.slf4j.Slf4j;
-import model.exception.SerialCustomException;
+import common.exception.SerialCustomException;
 
 /**
  * @author xutianyou <xutianyou@kuaishou.com>

@@ -1,9 +1,9 @@
 package utils;
 
-import static model.constant.Constants.ACCELERATION_HEAD;
-import static model.constant.Constants.ANGLE_HEAD;
-import static model.constant.Constants.ANGULAR_VELOCITY_HEAD;
-import static model.constant.Constants.FRAME_LENGTH;
+import static common.constant.Constants.ACCELERATION_HEAD;
+import static common.constant.Constants.ANGLE_HEAD;
+import static common.constant.Constants.ANGULAR_VELOCITY_HEAD;
+import static common.constant.Constants.FRAME_LENGTH;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -19,7 +19,7 @@ import lombok.extern.slf4j.Slf4j;
 import model.bo.AccelerationParam;
 import model.bo.AngleParam;
 import model.bo.AngularVelocityParam;
-import model.exception.SerialCustomException;
+import common.exception.SerialCustomException;
 
 /**
  * @author xutianyou <xutianyou@mail.bnu.edu.cn>

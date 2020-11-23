@@ -3,7 +3,6 @@ package utils;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.TooManyListenersException;
 
@@ -15,7 +14,7 @@ import gnu.io.SerialPortEventListener;
 import gnu.io.UnsupportedCommOperationException;
 import lombok.extern.slf4j.Slf4j;
 import model.config.SerialParamConfig;
-import model.exception.SerialCustomException;
+import common.exception.SerialCustomException;
 
 /**
  * @author xutianyou <xutianyou@mail.bnu.edu.cn>

@@ -1,4 +1,4 @@
-package model.constant;
+package common.constant;
 
 /**
  * @author xutianyou <xutianyou@mail.bnu.edu.cn>

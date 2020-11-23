@@ -9,7 +9,7 @@ import org.bytedeco.javacv.FrameGrabber.Exception;
 import org.bytedeco.javacv.OpenCVFrameGrabber;
 
 import model.config.SerialParamConfig;
-import model.exception.SerialCustomException;
+import common.exception.SerialCustomException;
 
 /**
  * @author xutianyou <xutianyou@mail.bnu.edu.cn>

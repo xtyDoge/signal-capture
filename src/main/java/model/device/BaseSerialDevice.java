@@ -3,7 +3,7 @@ package model.device;
 import gnu.io.NRSerialPort;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
-import model.exception.SerialCustomException;
+import common.exception.SerialCustomException;
 
 /**
  * @author xutianyou <xutianyou@mail.bnu.edu.cn>

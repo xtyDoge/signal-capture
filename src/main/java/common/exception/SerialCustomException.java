@@ -1,4 +1,4 @@
-package model.exception;
+package common.exception;
 
 /**
  * @author xutianyou <xutianyou@mail.bnu.edu.cn>

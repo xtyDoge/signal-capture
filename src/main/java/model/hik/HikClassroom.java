@@ -1,7 +1,5 @@
 package model.hik;
 
-import java.util.List;
-
 import lombok.Data;
 
 /**
