@@ -8,7 +8,7 @@ import org.springframework.stereotype.Service;
 
 import gnu.io.NRSerialPort;
 import lombok.extern.slf4j.Slf4j;
-import model.device.WitBWT901CL;
+import model.device.sensor.WitBWT901CL;
 
 /**
  * @author xutianyou <xutianyou@kuaishou.com>

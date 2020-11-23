@@ -1,5 +1,6 @@
 package model.device;
 
+import common.enums.SerialCommand;
 import gnu.io.NRSerialPort;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
@@ -30,7 +31,11 @@ public abstract class BaseSerialDevice {
     }
 
     public void readFrame() throws SerialCustomException {
-        throw new SerialCustomException("Read Frame method must be override.");
+        throw new SerialCustomException("Read Frame method must be override!");
+    }
+
+    public void sendCommand(SerialCommand command, String... args) throws SerialCustomException{
+        throw new SerialCustomException("SendCommand method must be override!");
     }
 
     public void terminate() {

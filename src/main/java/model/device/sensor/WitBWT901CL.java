@@ -1,4 +1,4 @@
-package model.device;
+package model.device.sensor;
 
 import static common.constant.Constants.ACCELERATION_HEAD;
 import static common.constant.Constants.ANGLE_HEAD;
@@ -17,6 +17,7 @@ import model.bo.AngularVelocityParam;
 import model.bo.BaseSerialParam;
 import model.bo.SixAxisFrameParam;
 import common.exception.SerialCustomException;
+import model.device.BaseSerialDevice;
 
 /**
  * @author xutianyou <xutianyou@kuaishou.com>
@@ -37,7 +38,6 @@ public class WitBWT901CL extends BaseSerialDevice {
     @Override
     public void readFrame() throws SerialCustomException {
         DataInputStream ins = new DataInputStream(super.getSerial().getInputStream());
-        DataOutputStream outs = new DataOutputStream(super.getSerial().getOutputStream());
         try{
             //while(ins.available()==0 && !Thread.interrupted());// wait for a byte
             int count = 0;
@@ -60,8 +60,8 @@ public class WitBWT901CL extends BaseSerialDevice {
                     }
                 }
             }
-        }catch(Exception ex){
-            ex.printStackTrace();
+        } catch (Exception ex){
+            log.error("", ex);
         }
     }
 

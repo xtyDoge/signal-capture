@@ -5,14 +5,16 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import org.bytedeco.javacv.FrameGrabber.Exception;
+import org.bytedeco.libfreenect._freenect_context;
 
 import com.alibaba.fastjson.JSON;
 
+import common.enums.SerialDevice;
 import gnu.io.CommPortIdentifier;
 import lombok.extern.slf4j.Slf4j;
 import model.config.SerialParamConfig;
-import model.device.AppleFaceTimeCamera;
-import model.device.WitBWT901CL;
+
+import model.device.bluetoothAdaptor.WT52HB;
 import common.exception.SerialCustomException;
 import utils.NSerialUtils;
 import utils.SerialUtils;
@@ -61,25 +63,11 @@ public class TestSerial {
     }
 
     public static void main(String[] args) throws SerialCustomException {
-
-
-        ExecutorService executor = Executors.newFixedThreadPool(3);
-        executor.submit(() -> {
-            try {
-                AppleFaceTimeCamera camera1 = AppleFaceTimeCamera.build();
-                WitBWT901CL device1 = WitBWT901CL.fromPortName("/dev/tty.HC-06-DevB");
-
-                while (true) {
-                    camera1.readFrame();
-                    log.info("{}", JSON.toJSON(device1.readOneFrame()));
-                }
-
-
-            } catch (SerialCustomException | Exception e) {
-                e.printStackTrace();
-            }
-        });
-
+        //
+        WT52HB device1 = WT52HB.from(SerialDevice.BLUETOOTH_CONNECTOR);
+//        device1.ping();
+        device1.scan(1);
+        device1.readFrame();
     }
 
 }
