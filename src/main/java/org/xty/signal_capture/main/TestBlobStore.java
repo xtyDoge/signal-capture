@@ -1,6 +1,13 @@
 package org.xty.signal_capture.main;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import java.util.Arrays;
+
+import org.springframework.beans.factory.BeanFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.annotation.Lazy;
+import org.springframework.context.support.ClassPathXmlApplicationContext;
 import org.springframework.stereotype.Service;
 
 import org.xty.signal_capture.dao.blobStore.ImageMinioDao;
@@ -20,7 +27,8 @@ public class TestBlobStore {
     }
 
     public static void main(String[] args) {
-        TestBlobStore blobStore = new TestBlobStore();
+        BeanFactory factory = new ClassPathXmlApplicationContext("classpath:applicationContext.xml");
+        TestBlobStore blobStore = (TestBlobStore) factory.getBean("testBlobStore");
         blobStore.testMakeBucket();
     }
 
