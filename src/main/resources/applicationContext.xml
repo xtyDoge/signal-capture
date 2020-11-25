@@ -9,6 +9,10 @@
     <context:property-placeholder ignore-unresolvable="true" location="classpath:mysql.properties"/>
     <context:property-placeholder ignore-unresolvable="true" location="classpath:log4j.properties"/>
 
+    <context:annotation-config/>
+    <context:component-scan base-package="org.xty"/>
+
+    <bean id="java2DFrameConverter" class="org.bytedeco.javacv.Java2DFrameConverter"/>
 
     <bean id="dataSource" class="com.alibaba.druid.pool.DruidDataSource"
               init-method="init" destroy-method="close">

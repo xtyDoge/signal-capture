@@ -176,6 +176,12 @@
             <version>1.0.13</version>
         </dependency>
 
+<!--        对象存储-->
+        <dependency>
+            <groupId>io.minio</groupId>
+            <artifactId>minio</artifactId>
+            <version>3.0.10</version>
+        </dependency>
 
     </dependencies>
 
