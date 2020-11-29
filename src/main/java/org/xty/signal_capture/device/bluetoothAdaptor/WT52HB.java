@@ -5,12 +5,16 @@ import static org.xty.signal_capture.common.constant.Constants.MOTION_SENSOR;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.function.Consumer;
 
 import javax.xml.bind.DatatypeConverter;
@@ -18,10 +22,14 @@ import javax.xml.bind.DatatypeConverter;
 import com.alibaba.druid.util.StringUtils;
 import com.alibaba.fastjson.JSON;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+import org.xty.signal_capture.common.enums.SensorPosition;
 import org.xty.signal_capture.common.enums.SerialCommand;
 import org.xty.signal_capture.common.enums.SerialDevice;
 import lombok.extern.slf4j.Slf4j;
 
+import org.xty.signal_capture.dao.NineAxisMotionSensorFrameDao;
 import org.xty.signal_capture.device.BaseSerialDevice;
 import org.xty.signal_capture.model.NineAxisMotionSensorFrame;
 import org.xty.signal_capture.model.bo.bluetoothAdaptor.CommonResponse;
@@ -41,6 +49,11 @@ public class WT52HB extends BaseSerialDevice {
     private final ExecutorService executor = Executors.newFixedThreadPool(3);
     private final DataOutputStream outs = new DataOutputStream(super.getSerial().getOutputStream());
     private final DataInputStream ins = new DataInputStream(super.getSerial().getInputStream());
+
+    // 一个缓冲队列，来处理数据包
+    private BlockingQueue<NineAxisMotionSensorFrame> frameBuffer = new LinkedBlockingQueue<>();
+
+    private List<ListResponse> deviceIdsToConnect = new ArrayList<>();
 
     private final Map<String, Consumer<CommonResponse>> callbackMap = new HashMap<String, Consumer<CommonResponse>>(){{
         put("WIT-LIST", (response) -> listResponseCallback(response));
@@ -78,8 +91,12 @@ public class WT52HB extends BaseSerialDevice {
                             frameBytes = new byte[512];
                             // 回调解析Response
                             if (Objects.nonNull(response) && callbackMap.containsKey(response.getHeader())) {
-                                log.info("{}", JSON.toJSON(response));
-                                callbackMap.get(response.getHeader()).accept(response);
+                                String header = response.getHeader();
+                                if (!StringUtils.equals("WIT-REV", header)) {
+                                    log.info("{}", JSON.toJSON(response));
+                                }
+                                // 异步处理回调
+                                executor.execute(() -> callbackMap.get(header).accept(response));
                             }
                             continue;
                         }
@@ -127,10 +144,26 @@ public class WT52HB extends BaseSerialDevice {
 
     // 列表中找到输入传感器的设备，并连接
     private void listResponseCallback(CommonResponse response) {
+        // 这里一直接收，需要先Loop 120s把所有设备都存起来，然后统一链接，或者看设备是不是全活儿了。。全不活儿就不能连
+
         ListResponse listResponse = (ListResponse) response;
         // 如果是传感器，就发送连接请求
         if (StringUtils.equals(MOTION_SENSOR, listResponse.getDeviceName())) {
-            connect(response.getDeviceNum());
+            deviceIdsToConnect.add(listResponse);
+        }
+
+        if (deviceIdsToConnect.size() == 4) {
+            deviceIdsToConnect.forEach(device -> {
+                connect(device.getDeviceNum());
+                try {
+                    // 串口助手两个命令之间间隔了1s
+                    Thread.sleep(3000L);
+                } catch (InterruptedException e) {
+                    log.error("", e);
+                }
+            });
+        } else {
+            log.info("Not enough devices, now {}, required : {}", deviceIdsToConnect.size(), 2);
         }
     }
 
@@ -140,16 +173,33 @@ public class WT52HB extends BaseSerialDevice {
         // 处理传感器包
         if (StringUtils.equals(MOTION_SENSOR, response.getDeviceName())) {
             // parse content
-            log.info("Device {}. Motion Raw Data [{}]", revResponse.getDeviceAddress(),
-                    DatatypeConverter.printHexBinary(revResponse.getContent()));
-            log.info("Device {}. Motion Parsed Data [{}]", revResponse.getDeviceAddress(),
-                    JSON.toJSON(NineAxisMotionSensorFrame.buildFromByteArray(revResponse.getContent())));
+            NineAxisMotionSensorFrame frame = NineAxisMotionSensorFrame.buildFromByteArray(revResponse.getContent());
+            frame.setSensorPosition(parsePositionFromDeviceAddress(response.getDeviceAddress()));
+            frame.setDeviceAddress(response.getDeviceAddress());
+//            log.info("Device {}. Motion Raw Data [{}]", revResponse.getDeviceAddress(),
+//                    DatatypeConverter.printHexBinary(revResponse.getContent()));
+//            log.info("Device {}. Motion Parsed Data [{}]", revResponse.getDeviceAddress(),
+//                    JSON.toJSON(frame));
+            try {
+                frameBuffer.put(frame);
+            } catch (InterruptedException e) {
+                log.error("", e);
+            }
         }
     }
 
     // 处理数据包
     private void con(CommonResponse response) {
 
+    }
+
+    // TODO
+    private int parsePositionFromDeviceAddress(String deviceAddress) {
+        return 1;
+    }
+
+    public BlockingQueue<NineAxisMotionSensorFrame> getFrameBuffer() {
+        return frameBuffer;
     }
 
 }

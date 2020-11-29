@@ -9,8 +9,10 @@ import lombok.Data;
 @Data
 public class NineAxisMotionSensorFrame {
 
+    private Long id;
+
     // 获取时间戳（毫秒）
-    private Long timestamp;
+    private Long mills;
 
     // 三轴角速度
     private Double angularVelocityX;
@@ -38,6 +40,9 @@ public class NineAxisMotionSensorFrame {
     // 位置
     private int sensorPosition;
 
+    // 设备地址
+    private String deviceAddress;
+
     // 采集行动名称（和保持一致）
     private String uuid;
 
@@ -45,7 +50,7 @@ public class NineAxisMotionSensorFrame {
 
         NineAxisMotionSensorFrame frame = new NineAxisMotionSensorFrame();
         // 当前时间
-        frame.timestamp = System.currentTimeMillis();
+        frame.mills = System.currentTimeMillis();
 
         // WT901BLE5.0帧结构
         // 0    1   2   3   4   5   6   7   8   9

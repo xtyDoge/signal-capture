@@ -4,9 +4,16 @@ import java.util.Enumeration;
 
 import com.alibaba.fastjson.JSON;
 
+import org.springframework.beans.factory.BeanFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.support.ClassPathXmlApplicationContext;
+import org.springframework.stereotype.Service;
 import org.xty.signal_capture.common.enums.SerialDevice;
 import gnu.io.CommPortIdentifier;
 import lombok.extern.slf4j.Slf4j;
+
+import org.xty.signal_capture.dao.NineAxisMotionSensorFrameDao;
+import org.xty.signal_capture.model.NineAxisMotionSensorFrame;
 import org.xty.signal_capture.model.config.SerialParamConfig;
 
 import org.xty.signal_capture.device.bluetoothAdaptor.WT52HB;
@@ -18,8 +25,12 @@ import org.xty.signal_capture.utils.SerialUtils;
  * @author xutianyou <xutianyou@mail.bnu.edu.cn>
  * Created on 2020-10-18
  */
+@Service
 @Slf4j
 public class TestSerial {
+
+    @Autowired
+    private NineAxisMotionSensorFrameDao frameDao;
 
     public void showAllSerials() {
         // 获取系统中所有的通讯端口
@@ -57,12 +68,33 @@ public class TestSerial {
         nSerialUtils.terminate();
     }
 
-    public static void main(String[] args) throws SerialCustomException {
-        //
+
+    private void testReadAndSave() {
         WT52HB device1 = WT52HB.from(SerialDevice.BLUETOOTH_CONNECTOR);
-//        device1.ping();
+        //        device1.ping();
         device1.scan(1);
+
+        Thread thread = new Thread(() -> {
+            while (true) {
+                try {
+                    NineAxisMotionSensorFrame frame = device1.getFrameBuffer().take();
+                    frame.setUuid("InfoLessonCap1");
+                    frameDao.insert(frame);
+                } catch (InterruptedException e) {
+                    log.error("Take from sensor frame buffer error! ", e);
+                }
+            }
+        });
+        thread.start();
         device1.readFrame();
+
+    }
+
+    public static void main(String[] args) throws SerialCustomException {
+        BeanFactory factory = new ClassPathXmlApplicationContext("classpath:applicationContext.xml");
+        TestSerial testDao = (TestSerial) factory.getBean("testSerial");
+        testDao.testReadAndSave();
+
     }
 
 }

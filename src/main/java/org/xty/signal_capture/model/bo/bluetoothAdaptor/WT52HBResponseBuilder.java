@@ -49,7 +49,6 @@ public class WT52HBResponseBuilder {
             log.info("[{}], not WIT response, length : {}", textTrimmed, textTrimmed.length());
             return null;
         }
-        log.info("Header : {}", header);
 
         // 如果map里没注册，就返回Null
         if (!supplierMap.containsKey(header)) {
