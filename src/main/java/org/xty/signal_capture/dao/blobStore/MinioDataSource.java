@@ -14,12 +14,11 @@ public class MinioDataSource {
     private volatile static MinioClient minioClient;
 
     public static MinioClient getInstance() {
-        log.info("Begin create minioClient");
         if (minioClient == null) {
             synchronized (MinioClient.class) {
                 if (minioClient == null) {
                     try {
-                        minioClient = new MinioClient("xty.com", "minioadmin", "minioadmin");
+                        minioClient = new MinioClient("http://xty.com:9000", "minioadmin", "minioadmin");
                     } catch (Exception e) {
                         log.error("", e);
                     }

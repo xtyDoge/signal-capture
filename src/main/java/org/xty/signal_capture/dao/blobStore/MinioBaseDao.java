@@ -4,7 +4,6 @@ import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 
 import org.bytedeco.javacv.FrameGrabber.Exception;
-import org.springframework.stereotype.Repository;
 
 import io.minio.MinioClient;
 import lombok.SneakyThrows;

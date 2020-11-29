@@ -9,7 +9,7 @@ import java.lang.annotation.Target;
  * @author xutianyou <xutianyou@kuaishou.com>
  * Created on 2020-11-08
  */
-@Target(ElementType.PARAMETER)
+@Target(ElementType.FIELD)
 @Retention(RetentionPolicy.RUNTIME)
 public @interface PrimaryKey {
 }

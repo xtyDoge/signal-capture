@@ -9,6 +9,8 @@ import javax.imageio.ImageIO;
 
 import org.bytedeco.javacv.Frame;
 import org.bytedeco.javacv.Java2DFrameConverter;
+import org.bytedeco.javacv.OpenCVFrameConverter.ToMat;
+import org.bytedeco.opencv.opencv_core.Mat;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
@@ -20,15 +22,17 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Repository
 @Slf4j
-public class ImageMinioDao extends MinioBaseDao<Frame> {
+public class ImageMinioDao extends MinioBaseDao<Mat> {
 
     @Autowired
     private Java2DFrameConverter frameConverter;
 
+    @Autowired
+    private ToMat toMatConverter;
+
     @Override
-    public byte[] convertObjectToByteArray(Frame frame) {
-        Java2DFrameConverter frameConverter = new Java2DFrameConverter();
-        BufferedImage image = frameConverter.convert(frame);
+    public byte[] convertObjectToByteArray(Mat mat) {
+        BufferedImage image = frameConverter.convert(toMatConverter.convert(mat));
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         try {
             ImageIO.write(image, "jpg", out);
@@ -39,10 +43,10 @@ public class ImageMinioDao extends MinioBaseDao<Frame> {
     }
 
     @Override
-    public Frame convertByteArrayToObject(byte[] bytes) {
+    public Mat convertByteArrayToObject(byte[] bytes) {
         try {
             BufferedImage image = ImageIO.read(new ByteArrayInputStream(bytes));
-            return frameConverter.convert(image);
+            return toMatConverter.convert(frameConverter.convert(image));
         } catch (IOException e) {
             log.error("convert byte to object error!", e);
         }

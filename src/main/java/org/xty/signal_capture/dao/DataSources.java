@@ -1,9 +1,9 @@
 package org.xty.signal_capture.dao;
 
-import javax.sql.DataSource;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+
+import com.alibaba.druid.pool.DruidDataSource;
 
 /**
  * @author xutianyou <xutianyou@kuaishou.com>
@@ -12,7 +12,7 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 public class DataSources {
 
     @Autowired
-    private DataSource dataSource;
+    private DruidDataSource dataSource;
 
     public NamedParameterJdbcTemplate getReader() {
         return new NamedParameterJdbcTemplate(dataSource);
@@ -21,5 +21,7 @@ public class DataSources {
     public NamedParameterJdbcTemplate getWriter() {
         return new NamedParameterJdbcTemplate(dataSource);
     }
+
+
 
 }

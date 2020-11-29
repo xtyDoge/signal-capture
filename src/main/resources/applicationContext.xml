@@ -8,6 +8,7 @@
        xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd http://www.springframework.org/schema/context https://www.springframework.org/schema/context/spring-context.xsd http://www.springframework.org/schema/aop https://www.springframework.org/schema/aop/spring-aop.xsd">
 
     <bean id="java2DFrameConverter" class="org.bytedeco.javacv.Java2DFrameConverter"/>
+    <bean id="toMat" class="org.bytedeco.javacv.OpenCVFrameConverter.ToMat"/>
 
     <aop:config proxy-target-class="true"/>
     <context:annotation-config/>
@@ -18,8 +19,6 @@
 
     <context:annotation-config/>
     <context:component-scan base-package="org.xty"/>
-
-    <bean id="java2DFrameConverter" class="org.bytedeco.javacv.Java2DFrameConverter"/>
 
     <bean id="dataSource" class="com.alibaba.druid.pool.DruidDataSource"
               init-method="init" destroy-method="close">
