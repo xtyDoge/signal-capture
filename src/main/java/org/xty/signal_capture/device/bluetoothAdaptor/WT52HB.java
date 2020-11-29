@@ -5,6 +5,7 @@ import static org.xty.signal_capture.common.constant.Constants.MOTION_SENSOR;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -22,6 +23,7 @@ import org.xty.signal_capture.common.enums.SerialDevice;
 import lombok.extern.slf4j.Slf4j;
 
 import org.xty.signal_capture.device.BaseSerialDevice;
+import org.xty.signal_capture.model.NineAxisMotionSensorFrame;
 import org.xty.signal_capture.model.bo.bluetoothAdaptor.CommonResponse;
 import org.xty.signal_capture.model.bo.bluetoothAdaptor.ListResponse;
 import org.xty.signal_capture.model.bo.bluetoothAdaptor.RevResponse;
@@ -60,7 +62,7 @@ public class WT52HB extends BaseSerialDevice {
     public void readFrame() {
         executor.execute(() -> {
             try{
-                byte[] frameBytes = new byte[100];
+                byte[] frameBytes = new byte[512];
                 int count = 0;
                 while(!Thread.interrupted()) {// read all bytes
                     if(ins.available() > 0) {
@@ -68,11 +70,12 @@ public class WT52HB extends BaseSerialDevice {
                         // 如果出现 CR LF 代表帧结束
                         if (b == (byte) 0x0D && ins.available() > 0 && ins.readByte() == (byte) 0x0A) {
                             String line = new String(frameBytes);
+                            // 序列化成Response
+                            CommonResponse response =
+                                    WT52HBResponseBuilder.buildFromTextLine(line, Arrays.copyOfRange(frameBytes, 0, frameBytes.length));
                             // 初始化buffer
                             count = 0;
-                            frameBytes = new byte[100];
-                            // 序列化成Response
-                            CommonResponse response = WT52HBResponseBuilder.buildFromTextLine(line);
+                            frameBytes = new byte[512];
                             // 回调解析Response
                             if (Objects.nonNull(response) && callbackMap.containsKey(response.getHeader())) {
                                 log.info("{}", JSON.toJSON(response));
@@ -134,22 +137,19 @@ public class WT52HB extends BaseSerialDevice {
     // 处理数据包
     private void revResponseCallback(CommonResponse response) {
         RevResponse revResponse = (RevResponse) response;
-        // 如果是传感器，就发送连接请求
+        // 处理传感器包
         if (StringUtils.equals(MOTION_SENSOR, response.getDeviceName())) {
             // parse content
             log.info("Device {}. Motion Raw Data [{}]", revResponse.getDeviceAddress(),
-                    DatatypeConverter.printHexBinary(revResponse.getContent().getBytes()));
+                    DatatypeConverter.printHexBinary(revResponse.getContent()));
+            log.info("Device {}. Motion Parsed Data [{}]", revResponse.getDeviceAddress(),
+                    JSON.toJSON(NineAxisMotionSensorFrame.buildFromByteArray(revResponse.getContent())));
         }
     }
 
     // 处理数据包
     private void con(CommonResponse response) {
-        RevResponse revResponse = (RevResponse) response;
-        // 如果是传感器，就发送连接请求
-        if (StringUtils.equals(MOTION_SENSOR, response.getDeviceName())) {
-            // parse content
-            log.info("Device {}. Motion Raw Data [{}]", revResponse.getDeviceAddress(),
-                    DatatypeConverter.printHexBinary(revResponse.getContent().getBytes()));
-        }
+
     }
+
 }

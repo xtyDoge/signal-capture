@@ -12,5 +12,5 @@ public class RevResponse extends CommonResponse{
 
     private Integer contentLength;
 
-    private String content;
+    private byte[] content;
 }
