@@ -18,9 +18,10 @@ public class WT52HBResponseBuilder {
 
     private static final Pattern headerRegex = Pattern.compile("(WIT-[\\D]+)-.*?");
 
-    private static final Pattern linkRegex = Pattern.compile("(WIT-[\\D]+)-#(\\d+):\"(.*?)\".*?(0x[A-Z0-9]+)");
+    private static final Pattern linkRegex = Pattern.compile("(WIT-LINK)-#(\\d+):\"(.*?)\".*?(0x[A-Z0-9]+)");
     private static final Pattern listRegex = Pattern.compile("(WIT-LIST)-#(\\d+):\"(.*?)\"(0x[A-Z0-9]+)(-[0-9]+)");
     private static final Pattern revRegex = Pattern.compile("(WIT-REV)-#(\\d+):\"(.*?)\"(0x[A-Z0-9]+),([0-9]+),(.*?)");
+    private static final Pattern conlistRegex = Pattern.compile("(WIT-CONLIST)-#(\\d+):\"(.*?)\"(0x[A-Z0-9]+),([0-9]+),(.*?)");
 
 
     private static final Map<String, BiFunction<String, byte[], CommonResponse>> supplierMap =

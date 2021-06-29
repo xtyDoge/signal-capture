@@ -32,7 +32,6 @@ public class TestDao {
             videoFrame.setSequenceNumber(i);
             videoFrame.setMills(System.currentTimeMillis());
             videoFrame.setUuid("STESRS-");
-            cameraService.saveImage(null, videoFrame);
         }
     }
 

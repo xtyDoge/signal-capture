@@ -33,6 +33,8 @@ import org.xty.signal_capture.dao.NineAxisMotionSensorFrameDao;
 import org.xty.signal_capture.device.BaseSerialDevice;
 import org.xty.signal_capture.model.NineAxisMotionSensorFrame;
 import org.xty.signal_capture.model.bo.bluetoothAdaptor.CommonResponse;
+import org.xty.signal_capture.model.bo.bluetoothAdaptor.ConlistResponse;
+import org.xty.signal_capture.model.bo.bluetoothAdaptor.LinkResponse;
 import org.xty.signal_capture.model.bo.bluetoothAdaptor.ListResponse;
 import org.xty.signal_capture.model.bo.bluetoothAdaptor.RevResponse;
 import org.xty.signal_capture.model.bo.bluetoothAdaptor.WT52HBResponseBuilder;
@@ -46,7 +48,7 @@ import org.xty.signal_capture.model.bo.bluetoothAdaptor.WT52HBResponseBuilder;
 public class WT52HB extends BaseSerialDevice {
 
     // 每个设备对应三个线程，一个发一个收一个处理回调？
-    private final ExecutorService executor = Executors.newFixedThreadPool(3);
+    private final ExecutorService executor = Executors.newCachedThreadPool();
     private final DataOutputStream outs = new DataOutputStream(super.getSerial().getOutputStream());
     private final DataInputStream ins = new DataInputStream(super.getSerial().getInputStream());
 
@@ -54,11 +56,13 @@ public class WT52HB extends BaseSerialDevice {
     private BlockingQueue<NineAxisMotionSensorFrame> frameBuffer = new LinkedBlockingQueue<>();
 
     private List<ListResponse> deviceIdsToConnect = new ArrayList<>();
+    private List<LinkResponse> deviceIdsConnected = new ArrayList<>();
 
     private final Map<String, Consumer<CommonResponse>> callbackMap = new HashMap<String, Consumer<CommonResponse>>(){{
         put("WIT-LIST", (response) -> listResponseCallback(response));
         put("WIT-REV",  (response) -> revResponseCallback(response));
         put("WIT-CONLIST",  (response) -> revResponseCallback(response));
+        put("WIT-LINK",  (response) -> linkResponseCallback(response));
 
     }};
 
@@ -86,13 +90,15 @@ public class WT52HB extends BaseSerialDevice {
                             // 序列化成Response
                             CommonResponse response =
                                     WT52HBResponseBuilder.buildFromTextLine(line, Arrays.copyOfRange(frameBytes, 0, frameBytes.length));
+                            log.info("{}", response);
                             // 初始化buffer
                             count = 0;
                             frameBytes = new byte[512];
                             // 回调解析Response
                             if (Objects.nonNull(response) && callbackMap.containsKey(response.getHeader())) {
                                 String header = response.getHeader();
-                                if (!StringUtils.equals("WIT-REV", header)) {
+//                                if (!StringUtils.equals("WIT-REV", header)) {
+                                if (true) {
                                     log.info("{}", JSON.toJSON(response));
                                 }
                                 // 异步处理回调
@@ -124,6 +130,11 @@ public class WT52HB extends BaseSerialDevice {
                 log.error("", e);
             }
         });
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            log.error("", e);
+        }
     }
 
     // ping命令
@@ -141,6 +152,21 @@ public class WT52HB extends BaseSerialDevice {
         sendCommand(SerialCommand.AT_SCAN, String.valueOf(deviceNum));
     }
 
+    // 设定自动连接的设备名,name命令
+    public void name(String name) {
+        sendCommand(SerialCommand.AT_NAME, name);
+    }
+
+    // 设定自动连接的设备名,name命令
+    public void connmode(String mode) {
+        sendCommand(SerialCommand.AT_CONNMODE, mode);
+    }
+
+    // 设置自动连接超时时间，sec秒
+    public void contimeout(int timeout) {
+        sendCommand(SerialCommand.AT_CONTIMEOUT, String.valueOf(timeout));
+    }
+
 
     // 列表中找到输入传感器的设备，并连接
     private void listResponseCallback(CommonResponse response) {
@@ -151,20 +177,21 @@ public class WT52HB extends BaseSerialDevice {
         if (StringUtils.equals(MOTION_SENSOR, listResponse.getDeviceName())) {
             deviceIdsToConnect.add(listResponse);
         }
+        log.info("{}", listResponse);
 
-        if (deviceIdsToConnect.size() == 4) {
-            deviceIdsToConnect.forEach(device -> {
-                connect(device.getDeviceNum());
-                try {
-                    // 串口助手两个命令之间间隔了1s
-                    Thread.sleep(3000L);
-                } catch (InterruptedException e) {
-                    log.error("", e);
-                }
-            });
-        } else {
-            log.info("Not enough devices, now {}, required : {}", deviceIdsToConnect.size(), 2);
-        }
+//        if (deviceIdsToConnect.size() == 4) {
+//            deviceIdsToConnect.forEach(device -> {
+//                connect(device.getDeviceNum());
+//                try {
+//                    // 串口助手两个命令之间间隔了1s
+//                    Thread.sleep(3000L);
+//                } catch (InterruptedException e) {
+//                    log.error("", e);
+//                }
+//            });
+//        } else {
+//            log.info("Not enough devices, now {}, required : {}", deviceIdsToConnect.size(), 1);
+//        }
     }
 
     // 处理数据包
@@ -189,8 +216,38 @@ public class WT52HB extends BaseSerialDevice {
     }
 
     // 处理数据包
-    private void con(CommonResponse response) {
+    private void conlistResponseCallback(CommonResponse response) {
+        ConlistResponse revResponse = (ConlistResponse) response;
+        // 处理传感器包
+        if (StringUtils.equals(MOTION_SENSOR, response.getDeviceName())) {
+            // parse content
+            NineAxisMotionSensorFrame frame = NineAxisMotionSensorFrame.buildFromByteArray(revResponse.getContent());
+            frame.setSensorPosition(parsePositionFromDeviceAddress(response.getDeviceAddress()));
+            frame.setDeviceAddress(response.getDeviceAddress());
+            //            log.info("Device {}. Motion Raw Data [{}]", revResponse.getDeviceAddress(),
+            //                    DatatypeConverter.printHexBinary(revResponse.getContent()));
+            //            log.info("Device {}. Motion Parsed Data [{}]", revResponse.getDeviceAddress(),
+            //                    JSON.toJSON(frame));
+            try {
+                frameBuffer.put(frame);
+            } catch (InterruptedException e) {
+                log.error("", e);
+            }
+        }
+    }
 
+    // 处理数据包
+    private void linkResponseCallback(CommonResponse response) {
+        LinkResponse linkResponse = (LinkResponse) response;
+        // 处理传感器包
+        if (StringUtils.equals(MOTION_SENSOR, response.getDeviceName())) {
+            deviceIdsConnected.add(linkResponse);
+        }
+    }
+
+    public boolean isAllSensorsConnected() {
+        log.info("Now {} devices connected, require {}.", deviceIdsConnected.size(), 4);
+        return deviceIdsConnected.size() == 4;
     }
 
     // TODO

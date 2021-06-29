@@ -21,6 +21,8 @@ import org.springframework.stereotype.Service;
 
 import org.xty.signal_capture.device.camera.AppleFaceTimeCamera;
 import org.xty.signal_capture.device.camera.RtmpCamera;
+import org.xty.signal_capture.model.VideoFrame;
+
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -31,7 +33,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class TestCamera {
 
-    private static BlockingQueue<Mat> frameBuffer = new LinkedBlockingQueue<>(1000);
+    private static BlockingQueue<VideoFrame> frameBuffer = new LinkedBlockingQueue<>(1000);
     private static ExecutorService executors = Executors.newFixedThreadPool(2);
 
     @Autowired
@@ -40,7 +42,7 @@ public class TestCamera {
     @Autowired
     private ToMat toMat;
 
-    private void testPlay(BlockingQueue<Mat> frameBuffer, double frameRate) {
+    private void testPlay(BlockingQueue<VideoFrame> frameBuffer, double frameRate) {
 
         CanvasFrame canvas = new CanvasFrame("摄像头");//新建一个窗口
         canvas.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
@@ -50,7 +52,7 @@ public class TestCamera {
         Frame frame;
         while (true) {
             try {
-                frame = toMat.convert(frameBuffer.take());
+                frame = toMat.convert(frameBuffer.take().getImage());
                 canvas.showImage(frame);
                 Thread.sleep((long) (1000 / frameRate));
                 log.info("frame remains {}", frameBuffer.size());
@@ -84,7 +86,7 @@ public class TestCamera {
 
     private void testRemoteCamera() {
         try {
-            RtmpCamera camera = RtmpCamera.build("rtmp://58.200.131.2:1935/livetv/hunantv");
+            RtmpCamera camera = RtmpCamera.build("rtmp://172.22.99.204:1935/live/EUrl/1SBxcze");
             Thread grabThread = new Thread(() -> {
                 try {
                     camera.readFramesLoop(frameBuffer, Integer.MAX_VALUE);
@@ -107,24 +109,6 @@ public class TestCamera {
         }
     }
 
-    private void testIdiotPlay() {
-        try {
-//            RtmpCamera camera = RtmpCamera.build("rtmp://58.200.131.2:1935/livetv/hunantv");
-            AppleFaceTimeCamera camera = AppleFaceTimeCamera.build();
-            Thread playThread = new Thread(() -> {
-                try {
-                    camera.readFramesLoop();
-                } catch (Exception e) {
-                    log.error("", e);
-                }
-            });
-            log.info("Ready for another start");
-            playThread.start();
-
-        } catch (Exception e) {
-            log.error("", e);
-        }
-    }
 
     public static void main(String[] args) {
         BeanFactory factory = new ClassPathXmlApplicationContext("classpath:applicationContext.xml");

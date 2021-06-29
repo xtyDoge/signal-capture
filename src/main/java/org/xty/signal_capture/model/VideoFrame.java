@@ -1,6 +1,9 @@
 package org.xty.signal_capture.model;
 
+import org.bytedeco.opencv.opencv_core.Mat;
 import org.xty.signal_capture.common.annotations.PrimaryKey;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import lombok.Data;
 
@@ -21,4 +24,7 @@ public class VideoFrame {
     private long mills;
 
     private int sequenceNumber;
+
+    @JsonIgnore
+    private Mat image;
 }

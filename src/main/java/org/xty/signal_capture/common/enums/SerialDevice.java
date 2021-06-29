@@ -6,7 +6,7 @@ package org.xty.signal_capture.common.enums;
  */
 public enum SerialDevice {
 
-    BLUETOOTH_CONNECTOR("WT52HB蓝牙多连适配器", "", "/dev/tty.wchusbserial14120", 230400),
+    BLUETOOTH_CONNECTOR("WT52HB蓝牙多连适配器", "", "/dev/tty.wchusbserial1410", 230400),
     ;
 
     SerialDevice(String description, String uuid, String identifier, int baudRate) {

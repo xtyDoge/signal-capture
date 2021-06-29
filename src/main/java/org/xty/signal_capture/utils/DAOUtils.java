@@ -8,10 +8,12 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.google.common.base.CaseFormat;
 import com.google.common.base.Joiner;
 
@@ -47,6 +49,7 @@ public class DAOUtils {
         Field[] fields = clazz.getDeclaredFields();
         List<String> fieldList = Arrays.stream(fields)
                 .filter(field -> !Modifier.isStatic(field.getModifiers()))
+                .filter(field -> Objects.isNull(field.getAnnotation(JsonIgnore.class)))
                 .map(field -> CaseFormat.LOWER_CAMEL.to(CaseFormat.LOWER_UNDERSCORE,
                         field.getName()))
                 .collect(Collectors.toList());
@@ -59,6 +62,7 @@ public class DAOUtils {
         Field[] fields = clazz.getDeclaredFields();
         List<String> fieldList = Arrays.stream(fields)
                 .filter(field -> !Modifier.isStatic(field.getModifiers()))
+                .filter(field -> Objects.isNull(field.getAnnotation(JsonIgnore.class)))
                 .map(field -> ":" + field.getName()).collect(Collectors.toList());
 
         return Joiner.on(", ").join(fieldList);

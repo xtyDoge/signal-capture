@@ -17,9 +17,11 @@ import org.springframework.beans.factory.BeanFactory;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
 import org.springframework.stereotype.Service;
 
+import org.xty.signal_capture.dao.VideoFrameDao;
 import org.xty.signal_capture.dao.blobStore.ImageMinioDao;
 import org.xty.signal_capture.device.camera.AppleFaceTimeCamera;
 import org.xty.signal_capture.device.camera.RtmpCamera;
+import org.xty.signal_capture.model.VideoFrame;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -33,11 +35,14 @@ public class TestBlobStore {
 
     private static final String BUCKET_NAME = "test-bucket";
 
-    private static BlockingQueue<Mat> frameBuffer = new LinkedBlockingQueue<>(1000);
+    private static BlockingQueue<VideoFrame> frameBuffer = new LinkedBlockingQueue<>(1000);
     private static ExecutorService executors = Executors.newFixedThreadPool(2);
 
     @Autowired
     private ImageMinioDao imageMinioDao;
+
+    @Autowired
+    private VideoFrameDao videoFrameDao;
 
     private void testMakeBucket() {
         imageMinioDao.makeBucket(BUCKET_NAME);
@@ -45,13 +50,17 @@ public class TestBlobStore {
 
     private void testSaveFrame() {
         try {
-            AppleFaceTimeCamera camera = AppleFaceTimeCamera.build();
+            RtmpCamera camera = RtmpCamera.build("rtmp://58.200.131.2:1935/livetv/hunantv");
 
-            camera.readFramesLoop(frameBuffer, 10);
+            camera.readFramesLoop(frameBuffer, Integer.MAX_VALUE);
 
             while (frameBuffer.size() != 0) {
-                imageMinioDao.insertObject(BUCKET_NAME, String.format("Neo-frame-%d", System.currentTimeMillis()), frameBuffer.take());
+                VideoFrame frame = frameBuffer.take();
+                frame.setUuid("InfoLessonCap");
 
+                imageMinioDao.insertObject(BUCKET_NAME,
+                        String.format("%s_%d_%d", frame.getUuid(), frame.getMills(), frame.getSequenceNumber()), frame.getImage());
+                videoFrameDao.insert(frame);
             }
 
 
@@ -64,6 +73,7 @@ public class TestBlobStore {
         BeanFactory factory = new ClassPathXmlApplicationContext("classpath:applicationContext.xml");
         TestBlobStore blobStore = (TestBlobStore) factory.getBean("testBlobStore");
         blobStore.testSaveFrame();
+        System.exit(0);
     }
 
 }

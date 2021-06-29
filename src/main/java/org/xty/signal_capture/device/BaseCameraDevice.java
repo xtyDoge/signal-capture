@@ -1,43 +1,26 @@
 package org.xty.signal_capture.device;
 
-import static javax.swing.JFrame.EXIT_ON_CLOSE;
-
-import java.awt.Canvas;
-import java.awt.image.BufferedImage;
-import java.util.ArrayList;
 import java.util.EnumSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Objects;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingDeque;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.LinkedBlockingDeque;
-import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
-import javax.swing.WindowConstants;
-
-import org.bytedeco.javacv.CanvasFrame;
+import org.bytedeco.ffmpeg.global.avcodec;
 import org.bytedeco.javacv.FFmpegFrameFilter;
 import org.bytedeco.javacv.FFmpegFrameGrabber;
-import org.bytedeco.javacv.FFmpegLogCallback;
 import org.bytedeco.javacv.Frame;
 import org.bytedeco.javacv.Frame.Type;
 import org.bytedeco.javacv.FrameFilter;
 import org.bytedeco.javacv.FrameGrabber;
 import org.bytedeco.javacv.FrameGrabber.Exception;
-import org.bytedeco.javacv.Java2DFrameConverter;
-import org.bytedeco.javacv.OpenCVFrameConverter;
-import org.bytedeco.javacv.OpenCVFrameConverter.ToIplImage;
 import org.bytedeco.javacv.OpenCVFrameConverter.ToMat;
 import org.bytedeco.javacv.OpenCVFrameGrabber;
 import org.bytedeco.opencv.global.opencv_imgcodecs;
 import org.bytedeco.opencv.opencv_core.Mat;
-
-import com.alibaba.fastjson.JSON;
+import org.xty.signal_capture.model.VideoFrame;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -50,6 +33,7 @@ public abstract class BaseCameraDevice {
 
     // 一个设备需要有哪些东西？
     // 1. grabber 抓取器
+    private AtomicInteger count = new AtomicInteger(0);
 
     private int deviceId;
 
@@ -60,6 +44,8 @@ public abstract class BaseCameraDevice {
     private FrameFilter frameFilter;
 
     private ToMat converter;
+
+    private ExecutorService executor = Executors.newCachedThreadPool();
 
     public void init(int deviceId) throws FrameGrabber.Exception, FrameFilter.Exception {
         initLocalDevice(deviceId, 1);
@@ -84,7 +70,8 @@ public abstract class BaseCameraDevice {
         this.grabber = FFmpegFrameGrabber.createDefault(cameraUrl);
         this.converter = new ToMat();
         grabber.setOption("rtmp_transport", "tcp");
-//                grabber.setOption("rtsp_transport", "tcp");
+        grabber.setVideoCodec(avcodec.AV_CODEC_ID_H264);
+//        grabber.setOption("rtsp_transport", "tcp");
 
         this.frameFilter = new FFmpegFrameFilter("scale=iw/2:-1", grabber.getImageWidth(), grabber.getImageHeight());
         frameFilter.start();
@@ -101,7 +88,7 @@ public abstract class BaseCameraDevice {
         return frame;
     }
 
-    public void readFramesLoop(BlockingQueue<Mat> buffer, int limit)
+    public void readFramesLoop(BlockingQueue<VideoFrame> buffer, int limit)
             throws FrameGrabber.Exception, InterruptedException {
 
         // 加个计数
@@ -115,8 +102,13 @@ public abstract class BaseCameraDevice {
             if (isValidFrame(rawFrame)) {
                 Mat image = converter.convertToMat(rawFrame);
                 if (image != null) {
+                    // 用videoFrame封装一下
+                    VideoFrame videoFrame = new VideoFrame();
                     Mat imageCopy = image.clone();
-                    buffer.offer(imageCopy);
+                    videoFrame.setMills(System.currentTimeMillis());
+                    videoFrame.setImage(imageCopy);
+                    videoFrame.setSequenceNumber(count.getAndAdd(1));
+                    buffer.offer(videoFrame);
                     image.release();
                     validCounts += 1;
                 }
@@ -130,68 +122,41 @@ public abstract class BaseCameraDevice {
         log.info("Get Buffer complete.");
     }
 
-    public void readFramesLoop()
+
+    public void readFramesLoop(String uuid, Consumer<VideoFrame> handleVideoFrame)
             throws FrameGrabber.Exception {
 
-        List<Mat> frameList = new ArrayList<>();
-        OpenCVFrameConverter.ToMat converter = new OpenCVFrameConverter.ToMat();
+        // 加个计数
+        int totalCounts = 0;
+        int validCounts = 0;
 
-        int i = 0;
-        while(i < 1000) {
-            Frame frame = grabber.grabFrame();
-            if (isValidFrame(frame)) {
-                Mat image = converter.convertToMat(frame);
+        while (true) {
+
+            Frame rawFrame = grabber.grabFrame();
+
+            if (isValidFrame(rawFrame)) {
+                Mat image = converter.convertToMat(rawFrame);
                 if (image != null) {
+                    // 用videoFrame封装一下
+                    VideoFrame videoFrame = new VideoFrame();
                     Mat imageCopy = image.clone();
-                    frameList.add(imageCopy);
+                    videoFrame.setMills(System.currentTimeMillis());
+                    videoFrame.setImage(imageCopy);
+                    videoFrame.setSequenceNumber(count.getAndAdd(1));
+                    videoFrame.setUuid(uuid);
+                    // 调一下回调
+                    executor.execute(() -> handleVideoFrame.accept(videoFrame));
+
                     image.release();
-                    i += 1;
+                    validCounts += 1;
                 }
             }
+            totalCounts += 1;
+
+            if (totalCounts % 100 == 0) {
+                log.info("total Frames {}, {}%  images", totalCounts, validCounts * 100.0 / totalCounts);
+            }
         }
-
-//        i = 0;
-//        Iterator<Mat> iterator = frameList.iterator();
-//        while(i < 100) {
-//            Mat mat = iterator.next();
-//            doExecuteFrame(mat, i);
-//            i += 1;
-//        }
-
-        CanvasFrame canvas = new CanvasFrame("摄像头");//新建一个窗口
-        canvas.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
-        canvas.setAlwaysOnTop(true);
-
-        int totalCounts = 0;
-        int videoCounts = 0;
-        int audioCounts = 0;
-        int dataCounts = 0;
-
-        Iterator<Mat> iterator = frameList.iterator();
-        while (true) {
-            canvas.showImage(converter.convert(iterator.next()));
-//            Frame rawFrame = grabber.grabFrame();
-//
-//            if (isValidFrame(rawFrame)) {
-//                canvas.showImage(converter.getBufferedImage(rawFrame));
-//            }
-//            EnumSet<Type> types = rawFrame.getTypes();
-//            if (types.contains(Type.VIDEO)) {
-//                videoCounts += 1;
-//            }
-//            if (types.contains(Type.AUDIO)) {
-//                audioCounts += 1;
-//            }
-//            if (types.contains(Type.DATA)) {
-//                dataCounts += 1;
-//            }
-//            totalCounts += 1;
-//            if (totalCounts % 100 == 0) {
-//                log.info("total Frames {}, {}% images, {}% audio, {}% data", totalCounts, videoCounts * 100.0 / totalCounts,
-//                        audioCounts * 100.0 / totalCounts, dataCounts * 100.0 / totalCounts);
-//            }
-        }
-
     }
 
     private boolean isValidFrame(Frame frame) {

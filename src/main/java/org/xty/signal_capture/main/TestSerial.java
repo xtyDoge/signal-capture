@@ -72,6 +72,8 @@ public class TestSerial {
     private void testReadAndSave() {
         WT52HB device1 = WT52HB.from(SerialDevice.BLUETOOTH_CONNECTOR);
         //        device1.ping();
+        device1.name("WT901BLE58");
+        device1.connmode("1");
         device1.scan(1);
 
         Thread thread = new Thread(() -> {
